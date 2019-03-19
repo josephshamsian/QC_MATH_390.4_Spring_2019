@@ -8,7 +8,6 @@ date: "11:59PM March 16, 2019"
   Load the Boston housing data frame and create the vector $y$ (the median value) and matrix $X$ (all other features) from the data frame. Name the columns the same as Boston except for the first name it "(Intercept)".
 
 ```{r}
-#TO-DO
 data(Boston, package = "MASS")
 summary(Boston)
 str(Boston)
@@ -21,7 +20,6 @@ X
 Run the OLS linear model to get $b$, the vector of coefficients. Do not use `lm`.
 
 ```{r}
-#TO-DO
 #OLS solution
 b = solve(t(X) %*% X ) %*% t(X) %*% y
 
@@ -30,7 +28,6 @@ b = solve(t(X) %*% X ) %*% t(X) %*% y
 Find the hat matrix for this regression `H` and find its rank. Is this rank expected?
   
 ```{r}
-#TO-DO
 H = X %*% solve(t(X) %*% X) %*% t(X)
 dim(H)
 pacman::p_load(Matrix)
@@ -41,7 +38,6 @@ rankMatrix(H)
 Verify this is a projection matrix by verifying the two sufficient conditions. Use the `testthat` library's `expect_equal(matrix1, matrix2, tolerance = 1e-2)`.
 
 ```{r}
-#TO-DO
 pacman::p_load(testthat)
 expect_equal(H, t(H), tolerance = 1e-2)
 expect_equal(H %*% H, H, tolerance = 1e-2)
@@ -50,7 +46,6 @@ expect_equal(H %*% H, H, tolerance = 1e-2)
 Find the matrix that projects onto the space of residuals `H_comp` and find its rank. Is this rank expected?
 
 ```{r}
-#TO-DO
 I = diag(nrow(H))
 H_comp = (I - H)
 rankMatrix(H_comp)
@@ -59,7 +54,6 @@ rankMatrix(H_comp)
 Verify this is a projection matrix by verifying the two sufficient conditions. Use the `testthat` library.
 
 ```{r}
-#TO-DO
 expect_equal(H_comp, t(H_comp), tolerance = 1e-2)
 expect_equal(H_comp %*% H_comp, H_comp, tolerance = 1e-2)
 ```
@@ -67,14 +61,12 @@ expect_equal(H_comp %*% H_comp, H_comp, tolerance = 1e-2)
 Calculate $\hat{y}$.
 
 ```{r}
-#TO-DO
 y_hat = H %*% y 
 ```
 
 Calculate $e$ as the difference of $y$ and $\hat{y}$ and the projection onto the space of the residuals. Verify the two means of calculating the residuals provide the same results.
 
 ```{r}
-#TO-DO
 e = y - y_hat
 e_2 = H_comp %*% y 
 expect_equal(e, e_2)
@@ -83,7 +75,6 @@ expect_equal(e, e_2)
 Calculate $R^2$ and RMSE.
 
 ```{r}
-#TO-DO
 SSE = sum(e^2)
 SST = sum((y - mean(y))^2)
 Rsquared = 1 - SSE/SST
@@ -97,21 +88,18 @@ RMSE
 Verify $\hat{y}$ and $e$ are orthogonal.
 
 ```{r}
-#TO-DO
 t(e) %*% y_hat
 ```
 
 Verify $\hat{y} - \bar{y}$ and $e$ are orthogonal.
 
 ```{r}
-#TO-DO
 t(e) %*% (y_hat - mean(y))
 ```
 first find theta 
 Find the cosine-squared of $y - \bar{y}$ and $\hat{y} - \bar{y}$ and verify it is the same as $R^2$.
 
 ```{r}
-#TO-DO
 y_minus_y_bar = y - mean(y)
 yhat_minus_y_bar = y_hat - mean(y)
 
@@ -128,14 +116,12 @@ mean(y)
 Verify the sum of squares identity which we learned was due to the Pythagorean Theorem (applies since the projection is specifically orthogonal).
 
 ```{r}
-#TO-DO
 len_y_minus_y_bar^2 - len_yhat_minus_y_bar ^2 - SSE
 ```
 
 Create a matrix that is $(p + 1) \times (p + 1)$ full of NA's. Label the columns the same columns as X. Do not label the rows. For the first row, find the OLS estimate of the $y$ regressed on the first column only and put that in the first entry. For the second row, find the OLS estimates of the $y$ regressed on the first and second columns of $X$ only and put them in the first and second entries. For the third row, find the OLS estimates of the $y$ regressed on the first, second and third columns of $X$ only and put them in the first, second and third entries, etc. For the last row, fill it with the full OLS estimates.
 
 ```{r}
-#TO-DO
 M = matrix(NA,ncol(X),ncol(X))
 
 colnames(M)=colnames(X)
@@ -150,12 +136,11 @@ M
 
 Examine this matrix. Why are the estimates changing from row to row as you add in more predictors?
 Because each iteration we are pulling out more features which decreases error of ignorance. 
-  #TO-DO
+  
   
   Clear the workspace and load the diamonds dataset.
 
 ```{r}
-#TO-DO
 pacman::p_load(ggplot2)
 data(diamonds, package = "ggplot2")
 y = diamonds$price
@@ -166,7 +151,6 @@ table(c)
 Extract $y$, the price variable and "c", the nominal variable "color" as vectors.
 
 ```{r}
-#TO-DO
 y = diamonds$price
 c = diamonds$color
 ```
@@ -174,7 +158,6 @@ c = diamonds$color
 Convert the "c" vector to $X$ which contains an intercept and an appropriate number of dummies. Let the color G be the refernce category as it is the modal color. Name the columns of $X$ appropriately. The first should be "(Intercept)". Delete c.
 
 ```{r}
-#TO-DO
 X = rep(1, nrow(diamonds))
 X = cbind(X, diamonds$color == 'D') # dummy to represent each color 
 X = cbind(X, diamonds$color == 'E')
@@ -188,7 +171,6 @@ colnames(X) = c("Intercept", "is_D", "is_E", "is_F", "is_H", "is_I", "is_J")
 Repeat the iterative exercise that we did above for Boston.
 
 ```{r}
-#TO-DO
 M = matrix(NA,ncol(X),ncol(X))
 
 colnames(M)=colnames(X)
@@ -204,17 +186,19 @@ M
 Why didn't the estimates change as we added more and more features?
 
 
-#TO-DO
 
+From the last problem. Find the $R^2$ of an OLS regression of `y ~ X`. You can use the `summary` function of an `lm` model.
 
 ```{r}
-#TO-DO
+linear_model = lm(y ~ X)
+summary(linear_model)$r.squared
+summary(linear_model)$sigma
+
 ```
 
 Create a vector $y$ by simulating $n = 100$ standard iid normals. Create a matrix of size 100 x 2 and populate the first column by all ones (for the intercept) and the second column by 100 standard iid normals. Find the $R^2$ of an OLS regression of `y ~ X`. Use matrix algebra.
 
 ```{r}
-#TO-DO
 y = rnorm(100)
 X = matrix(cbind(rep(1,100),rnorm(100)),100,2)
 
@@ -236,16 +220,27 @@ Write a for loop to each time bind a new column of 100 standard iid normals to t
   
   
 ```{r}
-#TO-DO
-n = 100
-summary(lm(y ~ X))$r.squared
-for(iid in ncol(X) : n)
-  X = as.matrix(cbind(rnorm(n), X))
-  summary(X)$r.squared
+rows = nrow(X)
+LastCol = ncol(X) + 1
+r_squared_vec = c()
+
+X = as.data.frame(X)
+y = as.data.frame(y)
+
+for(j in (LastCol : 100)){
+  X[,j] = rnorm(rows,0,1)
+  r_squared_vec = c(r_squared_vec, summary(lm('as.matrix(y)~as.matrix(X)'))$r.squared)
+}
+r_squared_vec
 ```
 
 Add one final column to $X$ to bring the number of columns to 101. Then try to compute $R^2$. What happens and why?
+R^2 goes up because of overgitting 
   
 ```{r}
-#TO-DO
+X[, ncol(X) + 1] = rnorm(1,0,1)
+summary(lm('as.matrix(y)~as.matrix(X)'))$r.squared
+
+#adding an extra column will not affect R squared because that extra column will not be linearly independent. 
 ```
+
