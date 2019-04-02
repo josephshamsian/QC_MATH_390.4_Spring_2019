@@ -1,0 +1,261 @@
+---
+title: "Lab 7"
+author: "Joseph Shamsian"
+output: pdf_document
+date: "11:59PM March 31, 2019"
+---
+
+Generate $\mathbb{D}$ with $n = 100$ and $p = 1$ where $x$ is created from iid realizations from a standard uniform, $y$ comes from $f(x) = 3 - 4x$ and $\delta$ are iid realizations from a T distribution with 10 degrees of freedom.
+
+```{r}
+set.seed(1997)
+n = 100
+p = 1
+X = matrix(runif(n) , ncol = 1)
+f_x = 3 - 4 * X
+y = f_x + rt(n, df = 10)
+```
+
+Run the linear model using `lm` and compute b, RMSE and $R^2$.
+
+```{r}
+linear_mod = lm(y ~ X)
+coef(linear_mod)
+summary(linear_mod)$sigma
+summary(linear_mod)$r.squared
+```
+
+Progressively add columns of x (as draws from a standard uniform), run the linear model, and show $R^2$ goes to 1 and $s_e$ goes to zero. Save the $s_e$ in a vector called `in_sample_s_e`.
+
+```{r}
+in_sample_s_e = array(NA, n - 2)
+linear_mods = list()
+
+for (j in 1 : (n - 2)){
+  X = cbind(X, runif(n))
+  linear_mods[[j]] = lm(y ~ ., data.frame(X))
+  in_sample_s_e[j] = sd(linear_mods[[j]]$residuals)
+}
+dim(X)
+
+summary(linear_mods[[j]])$r.squared
+
+in_sample_s_e
+
+d = diff(in_sample_s_e)
+all(d < 0)
+```
+
+Compute a corresponding vector `oos_s_e` and show that it is increasing (for the most part) in degrees of freedom.
+
+```{r}
+
+n_star = 1e5
+p = 1
+X_star = matrix(runif(n_star) , ncol = 1)
+f_x_star = 3 - 4 * X_star
+y_star = f_x_star + rt(n_star, df = 10)
+
+oos_s_e = array(NA, n - 2)
+
+for (j in 1 : (n - 2)){
+  X_star = cbind(X_star, runif(n_star))
+  y_hat_star = predict(linear_mods[[j]], data.frame(X_star)) 
+  oos_s_e[j] = sd(y_star - y_hat_star)
+}
+
+oos_s_e
+d = diff(oos_s_e)
+all(d > 0)
+
+
+```
+
+Validate the linear model for the Boston housing data.
+
+```{r}
+Xy = MASS::Boston
+K = 10
+test_indices = sample(1 : nrow(Xy), 1 / K * nrow(Xy))
+train_indices = setdiff(1 : nrow(Xy), test_indices)
+
+Xy_train = Xy[train_indices, ]
+Xy_test = Xy[test_indices, ]
+
+lin_mod = lm(medv ~ ., Xy_train)
+lin_mod
+sd(lin_mod$residuals)
+y_hat_test = predict(lin_mod, Xy_test)
+sd(Xy_test$medv - y_hat_test)
+dim(Xy)
+```
+
+
+Let $x$ be iid realizations from a $U(0, 5)$, $y$ comes from $f(x) = 3 - 4x + 2x^2$ and $\epsilon$ are iid realizations from a standard normal distribution. With no limit on the number of samples you cant take, use regular OLS _without a quadratic term_, find the true $h^*(x)$ (there will be no sampling variability at $n \rightarrow \infty$ and find the oos variance of the residuals.
+
+```{r}
+# not sure what to use for n
+n = 1e5
+X = matrix(runif(0, 5), ncol = 1)
+X
+f_x = 3 - (4 * X) + 2 * (X^2)
+epsilon = rnorm(n)
+y = f_x + epsilon
+b = solve(t(X) %*% X) %*% t(X) %*% y
+h_star = b[1, 1] + b[2, 1] * X
+yhat = b %*% X
+
+
+
+```
+
+Was there any overfitting in the previous exercise?
+
+#TO-DO
+
+Find the error due to misspecification and due to ignorance expressed as variance of components of the residuals.
+
+```{r}
+misspecification_e = sd(y - f_x)
+misspecification_e
+ignorance_e = sd(y - f_x)
+ignorance_e
+```
+
+At $n = 100$, find the error due to estimation, due to misspecification and due to ignorance expressed as variance of components of the residuals.
+
+
+```{r}
+n = 100
+X = matrix(runif(n, 0, 5))
+f_x = 3 - 4*X + 2*(X^2)
+epsilon = rnorm(n)
+y = f_x + epsilon
+linear_mod = lm(y ~ X)
+beta_0 = coef(linear_mod)[1]
+beta_1 = coef(linear_mod)[1]
+h_star_x = beta_0 + beta_1 * X
+
+estimation_e = sd(y - h_star_x)
+misspecification_e = sd(f_x - h_star_x)
+ignorance_e = sd(y - f_x)
+
+```
+
+Do the variances add up to the total variance of the residual?
+
+
+```{r}
+#needs work 
+yhat = predict(linear_mod, X)
+total_var = sd(y - yhat)
+total_var
+yhat
+```
+
+
+Validate the linear model for the Boston housing data where each feature is also modeled with a squared feature.
+
+```{r}
+X = MASS::Boston
+y = X$medv
+X$medv = NULL
+X = cbind(X, X^2)
+colnames(X)[14 : 26] = paste(colnames(X)[1 : 13], "_sq", sep = "") 
+X$chas_sq = NULL
+
+K = 10
+test_indices = sample(1 : nrow(X), 1 / K * nrow(X))
+train_indices = setdiff(1 : nrow(X), test_indices)
+
+X_train = X[train_indices, ]
+y_train = y[train_indices]
+X_test = X[test_indices, ]
+y_test = y[test_indices]
+
+lin_mod = lm(y_train ~ ., X_train)
+#lin_mod
+sd(lin_mod$residuals)
+y_hat_test = predict(lin_mod, X_test)
+sd(y_test - y_hat_test)
+
+```
+
+Validate the linear model for the Boston housing data where each feature is also modeled with a squared feature and a cubed feature.
+
+```{r}
+X = MASS::Boston
+y = X$medv
+X$medv = NULL
+X = cbind(X, X^2, X^3)
+colnames(X)[14 : 26] = paste(colnames(X)[1 : 13], "_sq", sep = "") 
+colnames(X)[27 : 39] = paste(colnames(X)[1 : 13], "_cubed", sep = "") 
+X$chas_sq = NULL
+X$chas_cubed = NULL
+
+K = 10
+
+test_indices = sample(1 : nrow(X), 1 / K * nrow(X))
+train_indices = setdiff(1 : nrow(X), test_indices)
+
+X_train = X[train_indices, ]
+y_train = y[train_indices]
+X_test = X[test_indices, ]
+y_test = y[test_indices]
+
+lin_mod = lm(y_train ~ ., X_train)
+#lin_mod
+sd(lin_mod$residuals)
+y_hat_test = predict(lin_mod, X_test)
+sd(y_test - y_hat_test)
+```
+
+Validate the linear model for the Boston housing data where each feature is also modeled with a squared feature and a cubed feature and a log(x + 1) feature and an exponential feature. 
+
+```{r}
+X = MASS::Boston
+y = X$medv
+X$medv = NULL
+X = cbind(X, X^2, X^3, log(X + 1)) #Im not sure why it does not work when I add (exp(X))
+colnames(X)[14 : 26] = paste(colnames(X)[1 : 13], "_sq", sep = "") 
+colnames(X)[27 : 39] = paste(colnames(X)[1 : 13], "_cubed", sep = "") 
+colnames(X)[40 : 52] = paste(colnames(X)[1 : 13], "_log", sep = "") 
+#colnames(X)[53 : 65] = paste(colnames(X)[1 : 13], "_exp", sep = "")
+X$chas_sq = NULL
+X$chas_cubed = NULL
+X$chas_log = NULL
+X$chas_exp = NULL
+
+K = 10
+test_indices = sample(1 : nrow(Xy), 1 / K * nrow(Xy))
+train_indices = setdiff(1 : nrow(Xy), test_indices)
+
+X_train = X[train_indices, ]
+y_train = y[train_indices]
+X_test = X[test_indices, ]
+y_test = y[test_indices]
+
+lin_mod = lm(y_train ~ ., X_train)
+#lin_mod
+sd(lin_mod$residuals)
+y_hat_test = predict(lin_mod, X_test)
+sd(y_test - y_hat_test)
+```
+
+Why do we need to log $x + 1$? Why not use log(x)?
+We need to use X + 1 for log incase we have 0 values of X. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
