@@ -66,12 +66,12 @@ MIAMI_COORDS = c(25.7617, -80.1918)
 
 
 compute_globe_distance = function(destination, origin){
-  RAD_EARTH = 3958.8
-  dlon = (destination[2] - origin[2]) * 180 / pi
-  dlat = (destination[1] - origin[1]) * 180 / pi
-  a = (sin(dlat/2))^2 + cos(origin[1]) * cos(destination[1]) * (sin(dlon/2))^2
-  c = 2 * atan2( sqrt(a), sqrt(1-a) )
-  RAD_EARTH * c
+  destination_radians = destination*pi/180
+  origin_radians = origin*pi/180
+  lat_change = destination_radians[1] - origin_radians[1]
+  lon_change = destination_radians[2] - origin_radians[2]
+  a = (sin(lat_change/2))^2 + cos(origin_radians[1]) * cos(destination_radians[1]) * (sin(long_change/2))^2
+  return(RAD_EARTH * 2 * asin(sqrt(h)))
 }
 
 storms %<>%
@@ -84,17 +84,19 @@ storms
 At home: convert year, month, day, hour into the variable `timestamp` using the `lubridate` package.
 
 ```{r}
-#TO-DO
 library(lubridate)
 storms %<>%
-  mutate(timestamp = ymd_h("year, month, day, hour"))
+  mutate(timestamp = ymd_h(paste0(year, "-", month, "-", day, " ", hour)))
+storms
 ```
 
 At home: using the `lubridate` package, create new variables `day_of_week` which is a factor with levels "Sunday", "Monday", ... "Saturday" and `week_of_year` which is integer 1, 2, ..., 52.
 
 ```{r}
-#TO-DO
-
+storms %<>%
+  mutate(day_of_week = wday(timestamp, label = TRUE, abbr = FALSE),
+         week_of_year = week(timestamp))
+storms
 ```
 
 Create a new data frame `serious_storms` which are category 3 and above hurricanes.
@@ -166,7 +168,10 @@ storms %>%
 For each named storm, find the distance from its starting position to ending position in kilometers.
 
 ```{r}
-#TO-DO
+storms %>%
+  group_by(name) %>%
+  arrange(desc(timestamp)) %>%
+  summarize(distance_from_start = 1.61*compute_globe_distance( c(last(lat), last(long)) , c(first(lat), first(long)) ) )
 ```
 
 Now we want to transition to building real design matrices for prediction. We want to predict the following: given the first three readings of a storm, can you predict its maximum wind speed? Identify the `y` and identify which features you need $x_1, ... x_p$ and build that matrix with `dplyr` functions. This is not easy, but it is what it's all about. Feel free to "featurize" (as Dana Chandler spoke about) as creatively as you would like. You aren't going to overfit if you only build a few features relative to the total 198 storms.
