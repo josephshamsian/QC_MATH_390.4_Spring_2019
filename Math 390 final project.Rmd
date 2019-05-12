@@ -1,0 +1,47 @@
+---
+title: "Math 390 Final Project"
+author: "Joseph Shamsian"
+date: "5/10/2019"
+output: html_document
+---
+
+
+
+```{r cars}
+pacman::p_load(dplyr, tidyr, magrittr, lubridate)
+housing_data = read.csv("housing_data_2016_2017.csv", stringsAsFactors = FALSE)
+
+q_housing = as.data.frame(housing_data)
+
+
+
+q_housing$kitchen_type = factor(q_housing$kitchen_type)
+q_housing$maintenance_cost = factor(q_housing$maintenance_cost)
+q_housing$maintenance_cost = as.numeric(q_housing$maintenance_cost)
+
+
+q_housing$total_taxes = factor(q_housing$total_taxes)
+q_housing$total_taxes = as.numeric(q_housing$total_taxes)
+
+
+
+
+if(q_housing$kitchen_type == "Combo"){housing_data$kitchen_type = "combo"}
+if(q_housing$kitchen_type == "Eat in"){housing_data$kitchen_type = "eat in"}
+if(q_housing$kitchen_type == "Efficiency"){housing_data$kitchen_type = "efficiency"}
+if(q_housing$kitchen_type == "Formal"){housing_data$kitchen_type = "formal"}
+if(q_housing$kitchen_type == "Other"){housing_data$kitchen_type = "other"}
+if(q_housing$kitchen_type == "Dining area"){housing_data$kitchen_type = "dining area"}
+if(q_housing$kitchen_type == "Na"){housing_data$kitchen_type.rm}
+q_housing$fuel_type = !is.na(q_housing$fuel_type)
+q_housing$fuel_type = as.numeric(factor(q_housing$fuel_type))
+
+housing_data
+q_housing %<>%
+  select(num_bedrooms, num_floors_in_building, kitchen_type, maintenance_cost, num_full_bathrooms, num_total_rooms, sq_footage, total_taxes, walk_score, dining_room_type, fuel_type) 
+
+
+q_housing
+```
+
+
