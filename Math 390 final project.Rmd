@@ -8,7 +8,7 @@ output: html_document
 
 
 ```{r cars}
-pacman::p_load(dplyr, tidyr, magrittr, lubridatem, mlr)
+pacman::p_load(dplyr, tidyr, magrittr, mlr)
 housing_data = read.csv("housing_data_2016_2017.csv", stringsAsFactors = FALSE)
 
 q_housing = as.data.frame(housing_data)
@@ -23,18 +23,20 @@ q_housing %<>%
   mutate(fuel_type = tolower(fuel_type)) %>%
   mutate(fuel_type = as.numeric(factor(fuel_type, ordered = FALSE))) %>%
   mutate(maintenance_cost = as.numeric(factor(maintenance_cost, ordered = FALSE))) %>%
-  mutate(total_taxes = as.numeric(factor(total_taxes, ordered = FALSE))) %>%
   mutate(dogs_allowed = as.numeric(factor(dogs_allowed, ordered = FALSE))) %>%
   mutate(cats_allowed = tolower(cats_allowed)) %>%
-  mutate(cats_allowed = as.numeric(factor(cats_allowed)))  %>% 
-  mutate(sale_price = as.numeric(factor(sale_price, ordered = FALSE)))
+  mutate(cats_allowed = as.numeric(factor(cats_allowed)))  
   
 q_housing
 
-#modeling_task = makeRegrTask(data = q_housing , target = "sale_price") 
-#algorithm = makeLearner("regr.lm")
-#validation = makeResampleDesc("CV", iters = 5) #instantiate the 5-fold CV
-#resample(algorithm, modeling_task, validation)
+q_housing$sale_price =  as.numeric(gsub('[$,]', '', q_housing$sale_price))
+q_housing$total_taxes =  as.numeric(gsub('[$,]', '', q_housing$total_taxes))
+
+q_housing
+modeling_task = makeRegrTask(data = q_housing , target = "sale_price") 
+algorithm = makeLearner("regr.lm")
+validation = makeResampleDesc("CV", iters = 5) #instantiate the 5-fold CV
+resample(algorithm, modeling_task, validation)
 ```
 
 
