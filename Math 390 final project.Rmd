@@ -7,36 +7,139 @@ output: html_document
 
 
 
-```{r cars}
-pacman::p_load(dplyr, tidyr, magrittr, mlr)
+```{r}
+pacman::p_load(dplyr, tidyr, magrittr, mlr, missForest, lubridate)
 housing_data = read.csv("housing_data_2016_2017.csv", stringsAsFactors = FALSE)
+pacman::p_install_gh("kapelner/YARF", subdir = "YARFJARs", ref = "dev")
+pacman::p_install_gh("kapelner/YARF", subdir = "YARF", ref = "dev")
+housing_data
+pacman::p_load(rJava, YARF)
+pacman::p_load(YARF)
+
 
 q_housing = as.data.frame(housing_data)
 q_housing 
 
 q_housing %<>%
-  select(num_bedrooms, num_floors_in_building, kitchen_type, maintenance_cost, num_full_bathrooms, num_total_rooms, sq_footage, total_taxes, walk_score, dining_room_type, fuel_type, cats_allowed, dogs_allowed, sale_price) %>%
-  mutate(kitchen_type = tolower(kitchen_type)) %>%
+  select(num_bedrooms, num_floors_in_building, kitchen_type, maintenance_cost, num_full_bathrooms, num_total_rooms, sq_footage, walk_score, dining_room_type, fuel_type, cats_allowed, dogs_allowed, sale_price, coop_condo, approx_year_built, date_of_sale) %>%
+  
+   mutate(kitchen_type = tolower(kitchen_type)) %>%
   mutate(kitchen_type = as.numeric(factor(kitchen_type, ordered = FALSE))) %>%
   mutate(dining_room_type = tolower(dining_room_type)) %>%
   mutate(dining_room_type = as.numeric(factor(dining_room_type, ordered = FALSE))) %>%
   mutate(fuel_type = tolower(fuel_type)) %>%
   mutate(fuel_type = as.numeric(factor(fuel_type, ordered = FALSE))) %>%
   mutate(maintenance_cost = as.numeric(factor(maintenance_cost, ordered = FALSE))) %>%
-  mutate(dogs_allowed = as.numeric(factor(dogs_allowed, ordered = FALSE))) %>%
-  mutate(cats_allowed = tolower(cats_allowed)) %>%
-  mutate(cats_allowed = as.numeric(factor(cats_allowed)))  
+  mutate(dogs_allowed = ifelse(substr(.$dogs_allowed, 1, 1) == "y", 1, 0)) %>%
+  mutate(cats_allowed = ifelse(substr(.$cats_allowed, 1, 1) == "y", 1, 0)) %>%
+  mutate(coop_condo = factor(tolower(coop_condo))) %>%
+  mutate(coop_condo = ifelse(substr(.$coop_condo, 1, 5) == "co-op", 0, 1)) %>%
+  mutate(date_of_sale = strsplit(date_of_sale, split = "/", fixed = TRUE))
   
 q_housing
 
 q_housing$sale_price =  as.numeric(gsub('[$,]', '', q_housing$sale_price))
-q_housing$total_taxes =  as.numeric(gsub('[$,]', '', q_housing$total_taxes))
+is.na(data.frame)
 
-q_housing
-modeling_task = makeRegrTask(data = q_housing , target = "sale_price") 
-algorithm = makeLearner("regr.lm")
-validation = makeResampleDesc("CV", iters = 5) #instantiate the 5-fold CV
-resample(algorithm, modeling_task, validation)
+missingTable = tbl_df(apply(is.na(q_housing), 2, as.numeric))
+colnames(missingTable) = paste("is_missing_", colnames(q_housing), sep = "")
+missingTable = tbl_df(t(unique(t(missingTable))))
+missingTable %<>% 
+  select_if(function(x){sum(x) > 0})
+imp_q_housing = missForest(q_housing, sampsize = rep(200, ncol(q_housing)))$ximp
+imp_q_housing
 ```
 
+```{r}
+#REGRESSION OLS
+modeling_task = makeRegrTask(data = imp_q_housing, target = "sale_price") 
+algorithm = makeLearner("regr.lm")
+validation = makeResampleDesc("CV", iters = 3) #instantiate the 5-fold CV
+pred = resample(algorithm, modeling_task, validation, measures = list(rmse))
+mean(pred$measures.test$rmse)
+sd(pred$measures.test$rmse)
+```
+
+```{r}
+#REGRESSION TREE
+options(java.parameters = "-Xmx4000m")
+pacman::p_load(YARF)
+
+y = imp_q_housing$sale_price
+imp_q_housing%<>%
+  select(-sale_price)
+
+nrow(imp_q_housing)
+
+# test_size = 200
+# train_indices = sample(1 : nrow(imp_q_housing), test_size)
+# X_train = imp_q_housing[train_indices, ]
+# y_train = y[train_indices]
+# 
+# nrow(X_train)
+# length(setdiff((1:nrow(imp_q_housing)),train_indices))
+# 
+# test_indices = sample(setdiff(1 : nrow(imp_q_housing), train_indices), test_size)
+# X_test = imp_q_housing[test_indices, ]
+# y_test = y[test_indices]
+# 
+# nrow(X_train)
+# nrow(X_test)
+
+test_prop = 0.1
+train_indices = sample(1 : nrow(imp_q_housing), round((1 - test_prop) * nrow(imp_q_housing)))
+imp_q_train = imp_q_housing[train_indices, ]
+y_train = imp_q_train$sale_price
+X_train = imp_q_train
+X_train$sale_price = NULL
+test_indices = setdiff(1 : nrow(imp_q_train), train_indices)
+imp_q_test = imp_q_housing[test_indices, ]
+y_test = imp_q_test$sale_price
+X_test = imp_q_test
+X_test$sale_price = NULL
+
+tree_mod = YARFCART(data.frame(X = X_train), y_train)
+tree_mod
+get_tree_num_nodes_leaves_max_depths(tree_mod)
+illustrate_trees(tree_mod, max_depth = 4, open_file = TRUE)
+?YARFCART
+tree_mod[[3L]]
+
+y_hat_test = predict(tree_mod, X_test)
+y_hat_test
+```
+
+```{r}
+#RANDOM FOREST
+# y = imp_q_housing$sale_price
+# X = imp_q_housing
+# X$sale_price= NULL
+# mod_bag = YARFBAG(X, y, num_trees = 100)
+# mod_bag
+# mod_rf = YARF(X, y, num_trees = 100)
+# mod_rf
+# 
+# illustrate_trees(mod_rf, max_depth = 4, open_file = TRUE)
+# 
+# y_h = predict(mod_rf, imp_q_housing, y)
+#   
+
+modeling_task = makeRegrTask(data = imp_q_housing, target = "sale_price") 
+algorithm = makeLearner("regr.randomForest")
+validation = makeResampleDesc("CV", iters = 5) #instantiate the 5-fold CV
+pred = resample(algorithm, modeling_task, validation, measures = list(rmse))
+mean(pred$measures.test$rmse)
+sd(pred$measures.test$rmse)
+```
+
+```{r}
+getParamSet("classif.randomForest")
+
+modeling_task = makeRegrTask(data = imp_q_housing, target = "sale_price") 
+algorithm = makeLearner("classif.randomForest")
+validation = makeResampleDesc("CV", iters = 3) #instantiate the 5-fold CV
+pred = resample(algorithm, modeling_task, validation, measures = list(rmse))
+mean(pred$measures.test$rmse)
+sd(pred$measures.test$rmse)
+```
 
